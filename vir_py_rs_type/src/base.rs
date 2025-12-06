@@ -11,7 +11,8 @@ pub enum ValueKind<'ctx> {
     Float(VirPyFloat),
     Object(VirPyObject<'ctx>),
     ErrorWrapped(SandboxExecutionError),
-    Bool(bool)
+    Bool(bool),
+    String(String)
 }
 
 pub trait Downcast<'ctx>: Sized {
@@ -34,6 +35,18 @@ impl<'ctx> Upcast<'ctx> for bool {
     }
 }
 
+impl<'ctx> Downcast<'ctx> for String {
+    fn from_value(value: Value<'ctx>) -> Option<&'ctx Self> {
+        value.as_string()
+    }
+}
+
+impl<'ctx> Upcast<'ctx> for String {
+    fn from_value(&'ctx self) -> ValueKind<'ctx> {
+        ValueKind::String((*self).clone())
+    }
+}
+
 #[derive(Debug)]
 pub struct ValueContainer<'ctx> {
     pub kind: ValueKind<'ctx>,
@@ -51,6 +64,7 @@ impl<'ctx> ValueContainer<'ctx> {
             ValueKind::Object(o) => ValueKind::Object(o.clone()),
             ValueKind::ErrorWrapped(e) => ValueKind::ErrorWrapped(e.clone()),
             ValueKind::Bool(b) => ValueKind::Bool(b.clone()),
+            ValueKind::String(s) => ValueKind::String(s.clone()),
         };
         ValueContainer::new(new_kind, arena)
     }
@@ -86,6 +100,13 @@ impl<'ctx> ValueContainer<'ctx> {
     pub fn as_bool(&self) -> Option<&bool> {
         match &self.kind {
             ValueKind::Bool(e) => Some(e),
+            _ => None,
+        }
+    }
+
+    pub fn as_string(&self) -> Option<&String> {
+        match &self.kind {
+            ValueKind::String(e) => Some(e),
             _ => None,
         }
     }
