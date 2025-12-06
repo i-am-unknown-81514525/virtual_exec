@@ -1,7 +1,7 @@
 use crate::base::{Downcast, Upcast, Value, ValueKind};
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::ops::{Add, Div, Mul, Sub};
+use std::ops::{Add, Div, Mul, Rem, Sub};
 use std::rc::Rc;
 use crate::error::Result;
 
@@ -214,6 +214,64 @@ register_op_div!(VirPyInt, VirPyInt, ValueKind::Float);
 register_op_div!(VirPyFloat, VirPyFloat, ValueKind::Float);
 register_op_div!(VirPyInt, VirPyFloat, ValueKind::Float);
 register_op_div!(VirPyFloat, VirPyInt, ValueKind::Float);
+
+impl Rem for VirPyInt {
+    type Output = Result<VirPyInt>;
+    fn rem(self, rhs: Self) -> Self::Output {
+        if (rhs.value == 0) {
+            return Err(crate::error::SandboxExecutionError::DivideByZeroError)
+        }
+        let mut v = (self.value) % (rhs.value);
+        if (v < 0) {
+            v += rhs.value;
+        }
+        Ok(VirPyInt::new(v))
+    }
+}
+impl Rem for VirPyFloat {
+    type Output = Result<VirPyFloat>;
+    fn rem(self, rhs: Self) -> Self::Output {
+        if (rhs.value == 0f64) {
+            return Err(crate::error::SandboxExecutionError::DivideByZeroError)
+        }
+        let mut v = (self.value) % (rhs.value);
+        if (v < 0f64) {
+            v += rhs.value;
+        }
+        Ok(VirPyFloat::new(v))
+    }
+}
+impl Rem<VirPyInt> for VirPyFloat {
+    type Output = Result<VirPyFloat>;
+    fn rem(self, rhs: VirPyInt) -> Self::Output {
+        if (rhs.value == 0) {
+            return Err(crate::error::SandboxExecutionError::DivideByZeroError)
+        }
+        let mut v = (self.value) % (rhs.value as f64);
+        if (v < 0f64) {
+            v += rhs.value as f64;
+        }
+        Ok(VirPyFloat::new(v))
+    }
+}
+impl Rem<VirPyFloat> for VirPyInt {
+    type Output = Result<VirPyFloat>;
+    fn rem(self, rhs: VirPyFloat) -> Self::Output {
+        if (rhs.value == 0f64) {
+            return Err(crate::error::SandboxExecutionError::DivideByZeroError)
+        }
+        let mut v = (self.value as f64) % (rhs.value);
+        if (v < 0f64) {
+            v += rhs.value;
+        }
+        Ok(VirPyFloat::new(v))
+    }
+}
+
+register_op_moduls!(VirPyInt, VirPyInt, ValueKind::Int);
+register_op_moduls!(VirPyFloat, VirPyFloat, ValueKind::Float);
+register_op_moduls!(VirPyInt, VirPyFloat, ValueKind::Float);
+register_op_moduls!(VirPyFloat, VirPyInt, ValueKind::Float);
 
 register_op_eq!(bool, bool, ValueKind::Bool, |a, b| Ok(a==b));
 register_op_le!(bool, bool, ValueKind::Bool, |a, b| Ok(a<=b));
