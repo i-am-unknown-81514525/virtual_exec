@@ -309,3 +309,5 @@ register_op_ne!(VirPyInt, VirPyInt, ValueKind::Bool, |a: VirPyInt, b: VirPyInt| 
 register_op_ne!(VirPyInt, VirPyFloat, ValueKind::Bool, |a: VirPyInt, b: VirPyFloat| Ok(a.value as f64 != b.value));
 register_op_ne!(VirPyFloat, VirPyInt, ValueKind::Bool, |a: VirPyFloat, b: VirPyInt| Ok(a.value != b.value as f64));
 register_op_ne!(VirPyFloat, VirPyFloat, ValueKind::Bool, |a: VirPyFloat, b: VirPyFloat| Ok(a.value != b.value));
+//
+// register_op_bsl!(VirPyInt, VirPyInt, ValueKind::Int, |a: VirPyInt, b: VirPyInt| Ok(a.value << b.value));

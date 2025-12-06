@@ -1,11 +1,11 @@
 use crate::base::Value;
 use bumpalo::Bump;
 
-type OpFn =
+type BinaryOpFn =
     for<'ctx> fn(lhs: Value<'ctx>, rhs: Value<'ctx>, arena: &'ctx Bump) -> Option<Value<'ctx>>;
 
 #[macro_export]
-macro_rules! __op_register {
+macro_rules! __binary_op_register {
     (
         $lhs_type:ty,
         $rhs_type:ty,
@@ -44,13 +44,13 @@ macro_rules! __op_register {
     };
 }
 
-macro_rules! __op_create {
+macro_rules! __binary_op_create {
     ($name:tt, $alt_name:tt, $op:tt) => {
-        __op_create!(@impl $name, @impl $alt_name, $op, $);
+        __binary_op_create!(@impl $name, @impl $alt_name, $op, $);
     };
     (@impl $name:tt, @impl $alt_name:tt, $op:tt, $d:tt) => {
         ::paste::paste!{
-            pub struct [< Op $alt_name Impl>] {pub function: OpFn }
+            pub struct [< Op $alt_name Impl>] {pub function: $crate::op::BinaryOpFn }
             ::inventory::collect!([< Op $alt_name Impl>]);
             pub fn [< op_ $name>]<'ctx>(lhs: $crate::base::Value<'ctx>, rhs: $crate::base::Value<'ctx>, arena: &'ctx ::bumpalo::Bump) -> ::core::option::Option<$crate::base::Value<'ctx>> {
                 for implementation in ::inventory::iter::<[<Op $alt_name Impl>]> {
@@ -66,27 +66,27 @@ macro_rules! __op_create {
                     [<register_op_ $name>]!($d lhs_type, $d rhs_type, $d output_wrapper, |a, b| a $op b);
                 };
                 ($d lhs_type:ty, $d rhs_type:ty, $d output_wrapper:path, $d func:expr) => {
-                    $crate::__op_register!($d lhs_type, $d rhs_type, $d func, $d output_wrapper, $crate::op::[<Op $alt_name Impl>]);
+                    $crate::__binary_op_register!($d lhs_type, $d rhs_type, $d func, $d output_wrapper, $crate::op::[<Op $alt_name Impl>]);
                 }
             }
         }
     };
 }
 
-__op_create!(add, Add, +);
-__op_create!(sub, Sub, -);
-__op_create!(mul, Mul, *);
-__op_create!(div, Div, /);
-__op_create!(eq, Eq, ==);
-__op_create!(ge, Ge, >=);
-__op_create!(gt, Gt, >);
-__op_create!(le, Le, <=);
-__op_create!(lt, Lt, <);
-__op_create!(ne, Ne, !=);
-__op_create!(moduls, Mod, %);
-__op_create!(bsl, Bsl, <<);
-__op_create!(bsr, Bsr, >>);
-__op_create!(band, BitwiseAnd, &);
-__op_create!(bor, BitwiseOr, |);
-__op_create!(bxor, BitwiseXor, ^);
-__op_create!(not, Not, !);
+__binary_op_create!(add, Add, +);
+__binary_op_create!(sub, Sub, -);
+__binary_op_create!(mul, Mul, *);
+__binary_op_create!(div, Div, /);
+__binary_op_create!(eq, Eq, ==);
+__binary_op_create!(ge, Ge, >=);
+__binary_op_create!(gt, Gt, >);
+__binary_op_create!(le, Le, <=);
+__binary_op_create!(lt, Lt, <);
+__binary_op_create!(ne, Ne, !=);
+__binary_op_create!(moduls, Mod, %);
+__binary_op_create!(bsl, Bsl, <<);
+__binary_op_create!(bsr, Bsr, >>);
+__binary_op_create!(band, BitwiseAnd, &);
+__binary_op_create!(bor, BitwiseOr, |);
+__binary_op_create!(bxor, BitwiseXor, ^);
+// __op_create!(not, Not, !); // Not a binary operation
