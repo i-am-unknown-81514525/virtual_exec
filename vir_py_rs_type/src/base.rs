@@ -10,7 +10,8 @@ pub enum ValueKind<'ctx> {
     Int(VirPyInt),
     Float(VirPyFloat),
     Object(VirPyObject<'ctx>),
-    ErrorWrapped(SandboxExecutionError)
+    ErrorWrapped(SandboxExecutionError),
+    Bool(bool)
 }
 
 pub trait Downcast<'ctx>: Sized {
@@ -19,6 +20,18 @@ pub trait Downcast<'ctx>: Sized {
 
 pub trait Upcast<'ctx>: Sized {
     fn from_value(&'ctx self) -> ValueKind<'ctx>;
+}
+
+impl<'ctx> Downcast<'ctx> for bool {
+    fn from_value(value: Value<'ctx>) -> Option<&'ctx Self> {
+        value.as_bool()
+    }
+}
+
+impl<'ctx> Upcast<'ctx> for bool {
+    fn from_value(&'ctx self) -> ValueKind<'ctx> {
+        ValueKind::Bool((*self).clone())
+    }
 }
 
 #[derive(Debug)]
@@ -37,6 +50,7 @@ impl<'ctx> ValueContainer<'ctx> {
             ValueKind::Float(f) => ValueKind::Float(f.clone()),
             ValueKind::Object(o) => ValueKind::Object(o.clone()),
             ValueKind::ErrorWrapped(e) => ValueKind::ErrorWrapped(e.clone()),
+            ValueKind::Bool(b) => ValueKind::Bool(b.clone()),
         };
         ValueContainer::new(new_kind, arena)
     }
@@ -65,6 +79,13 @@ impl<'ctx> ValueContainer<'ctx> {
     pub fn as_error(&self) -> Option<&SandboxExecutionError> {
         match &self.kind {
             ValueKind::ErrorWrapped(e) => Some(e),
+            _ => None,
+        }
+    }
+
+    pub fn as_bool(&self) -> Option<&bool> {
+        match &self.kind {
+            ValueKind::Bool(e) => Some(e),
             _ => None,
         }
     }
