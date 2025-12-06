@@ -23,11 +23,7 @@ fn test_op_add_functionality() {
     assert!((result_float.as_float().unwrap().value - 3.75).abs() < f64::EPSILON);
     println!("Float + Float works as expected.");
 
-    // --- Test int + float (Unsupported, as per original test logic) ---
-    let result_unsupported = op_add(lhs_int, lhs_float, &arena);
-    assert!(
-        result_unsupported.is_none(),
-        "op_add for Int+Float should return None"
-    );
-    println!("Unsupported operation (Int + Float) correctly returns None.");
+    let result_unsupported = op_add(lhs_int, lhs_float, &arena).expect("op_add for Int+Float should succeed");
+    assert!(result_unsupported.as_float().unwrap().value - 16.5 < f64::EPSILON);
+    println!("Int + Float works as expected.");
 }
