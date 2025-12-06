@@ -1,11 +1,20 @@
 use crate::base::{Downcast, Value};
-use crate::builtin::VirPyInt;
+//
+// #[derive(Clone, Debug, Copy)]
+// pub struct LineSpan {
+//     pub line: u64,
+//     pub column: u64,
+//     pub length: u64
+// }
+//
+// // TODO ^ Since I don't actually have the span yet
 
 #[derive(Clone, Debug)]
 pub enum SandboxExecutionError {
     TimeoutError,
     ReferenceNotExistError(String),
-    DivideByZeroError
+    DivideByZeroError,
+    GenericPanicRewindError
 }
 
 pub type Result<T> = ::core::result::Result<T, SandboxExecutionError>;
