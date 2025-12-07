@@ -165,7 +165,7 @@ impl Mul<VirPyFloat> for VirPyInt {
 impl Div for VirPyInt {
     type Output = Result<VirPyFloat>;
     fn div(self, rhs: Self) -> Self::Output {
-        if (rhs.value == 0) {
+        if rhs.value == 0 {
             return Err(crate::error::SandboxExecutionError::DivideByZeroError);
         }
         Ok(VirPyFloat::new((self.value as f64) / (rhs.value as f64)))
@@ -174,7 +174,7 @@ impl Div for VirPyInt {
 impl Div for VirPyFloat {
     type Output = Result<Self>;
     fn div(self, rhs: Self) -> Self::Output {
-        if (rhs.value == 0f64) {
+        if rhs.value == 0f64 {
             return Err(crate::error::SandboxExecutionError::DivideByZeroError);
         }
         Ok(Self::new(self.value / rhs.value))
@@ -183,7 +183,7 @@ impl Div for VirPyFloat {
 impl Div<VirPyInt> for VirPyFloat {
     type Output = Result<Self>;
     fn div(self, rhs: VirPyInt) -> Self::Output {
-        if (rhs.value == 0) {
+        if rhs.value == 0 {
             return Err(crate::error::SandboxExecutionError::DivideByZeroError);
         }
         Ok(Self::new(self.value / (rhs.value as f64)))
@@ -192,7 +192,7 @@ impl Div<VirPyInt> for VirPyFloat {
 impl Div<VirPyFloat> for VirPyInt {
     type Output = Result<VirPyFloat>;
     fn div(self, rhs: VirPyFloat) -> Self::Output {
-        if (rhs.value == 0f64) {
+        if rhs.value == 0f64 {
             return Err(crate::error::SandboxExecutionError::DivideByZeroError);
         }
         Ok(VirPyFloat::new(self.value as f64 / rhs.value))
@@ -202,11 +202,11 @@ impl Div<VirPyFloat> for VirPyInt {
 impl Rem for VirPyInt {
     type Output = Result<VirPyInt>;
     fn rem(self, rhs: Self) -> Self::Output {
-        if (rhs.value == 0) {
+        if rhs.value == 0 {
             return Err(crate::error::SandboxExecutionError::DivideByZeroError);
         }
         let mut v = (self.value) % (rhs.value);
-        if (v < 0) {
+        if v < 0 {
             v += rhs.value;
         }
         Ok(VirPyInt::new(v))
@@ -215,11 +215,11 @@ impl Rem for VirPyInt {
 impl Rem for VirPyFloat {
     type Output = Result<VirPyFloat>;
     fn rem(self, rhs: Self) -> Self::Output {
-        if (rhs.value == 0f64) {
+        if rhs.value == 0f64 {
             return Err(crate::error::SandboxExecutionError::DivideByZeroError);
         }
         let mut v = (self.value) % (rhs.value);
-        if (v < 0f64) {
+        if v < 0f64 {
             v += rhs.value;
         }
         Ok(VirPyFloat::new(v))
@@ -228,11 +228,11 @@ impl Rem for VirPyFloat {
 impl Rem<VirPyInt> for VirPyFloat {
     type Output = Result<VirPyFloat>;
     fn rem(self, rhs: VirPyInt) -> Self::Output {
-        if (rhs.value == 0) {
+        if rhs.value == 0 {
             return Err(crate::error::SandboxExecutionError::DivideByZeroError);
         }
         let mut v = (self.value) % (rhs.value as f64);
-        if (v < 0f64) {
+        if v < 0f64 {
             v += rhs.value as f64;
         }
         Ok(VirPyFloat::new(v))
@@ -241,11 +241,11 @@ impl Rem<VirPyInt> for VirPyFloat {
 impl Rem<VirPyFloat> for VirPyInt {
     type Output = Result<VirPyFloat>;
     fn rem(self, rhs: VirPyFloat) -> Self::Output {
-        if (rhs.value == 0f64) {
+        if rhs.value == 0f64 {
             return Err(crate::error::SandboxExecutionError::DivideByZeroError);
         }
         let mut v = (self.value as f64) % (rhs.value);
-        if (v < 0f64) {
+        if v < 0f64 {
             v += rhs.value;
         }
         Ok(VirPyFloat::new(v))

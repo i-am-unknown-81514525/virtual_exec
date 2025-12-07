@@ -32,7 +32,7 @@ impl<'ctx> Downcast<'ctx> for bool {
 
 impl<'ctx> Upcast<'ctx> for bool {
     fn from_value(&'ctx self) -> ValueKind<'ctx> {
-        ValueKind::Bool((*self).clone())
+        ValueKind::Bool(*self)
     }
 }
 
@@ -72,11 +72,11 @@ impl<'ctx> ValueContainer<'ctx> {
 
     pub fn clone_in_arena(&self, arena: &'ctx Bump) -> Value<'ctx> {
         let new_kind = match &self.kind {
-            ValueKind::Int(i) => ValueKind::Int(i.clone()),
-            ValueKind::Float(f) => ValueKind::Float(f.clone()),
+            ValueKind::Int(i) => ValueKind::Int(*i),
+            ValueKind::Float(f) => ValueKind::Float(*f),
             ValueKind::Object(o) => ValueKind::Object(o.clone()),
             ValueKind::ErrorWrapped(e) => ValueKind::ErrorWrapped(e.clone()),
-            ValueKind::Bool(b) => ValueKind::Bool(b.clone()),
+            ValueKind::Bool(b) => ValueKind::Bool(*b),
             ValueKind::String(s) => ValueKind::String(s.clone()),
             ValueKind::None => ValueKind::None,
         };

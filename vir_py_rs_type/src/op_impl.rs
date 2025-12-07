@@ -26,12 +26,12 @@ register_op_moduls!(VirPyFloat, VirPyFloat, ValueKind::Float);
 register_op_moduls!(VirPyInt, VirPyFloat, ValueKind::Float);
 register_op_moduls!(VirPyFloat, VirPyInt, ValueKind::Float);
 
-register_op_eq!(bool, bool, ValueKind::Bool, |a, b| Ok(a == b));
-register_op_le!(bool, bool, ValueKind::Bool, |a, b| Ok(a <= b));
-register_op_lt!(bool, bool, ValueKind::Bool, |a, b| Ok(a < b));
-register_op_ge!(bool, bool, ValueKind::Bool, |a, b| Ok(a >= b));
-register_op_gt!(bool, bool, ValueKind::Bool, |a, b| Ok(a > b));
-register_op_ne!(bool, bool, ValueKind::Bool, |a, b| Ok(a != b));
+register_op_eq!(bool, bool, ValueKind::Bool, |a: bool, b: bool| Ok(a == b));
+register_op_le!(bool, bool, ValueKind::Bool, |a: bool, b: bool| Ok(a <= b));
+register_op_lt!(bool, bool, ValueKind::Bool, |a: bool, b: bool| Ok(!a & b));
+register_op_ge!(bool, bool, ValueKind::Bool, |a: bool, b: bool| Ok(a >= b));
+register_op_gt!(bool, bool, ValueKind::Bool, |a: bool, b: bool| Ok(a & !b));
+register_op_ne!(bool, bool, ValueKind::Bool, |a: bool, b: bool| Ok(a != b));
 
 register_op_eq!(
     VirPyInt,

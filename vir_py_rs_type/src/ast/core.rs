@@ -124,7 +124,7 @@ impl ASTNode for Expr {
                     }
                     (BinaryOperator::Or, ValueKind::None | ValueKind::Bool(false))
                     | (BinaryOperator::And, ValueKind::Bool(true)) => {
-                        return Ok(right.kind.eval(ctx.clone())?);
+                        return right.kind.eval(ctx.clone());
                     }
                     _ => {}
                 }
@@ -155,7 +155,6 @@ impl ASTNode for Expr {
                 })
             }
             Expr::Wrapped(expr) => expr.kind.eval(ctx.clone()),
-            _ => todo!(),
         }
     }
 
@@ -177,6 +176,7 @@ impl ASTNode for Literal {
     type Output<'ctx> = ValueKind<'ctx>;
 
     fn eval<'ctx>(&self, ctx: Rc<RefCell<ExecutionContext<'ctx>>>) -> Result<Self::Output<'ctx>> {
+        ctx.borrow_mut().consume_one()?;
         match self {
             Literal::Bool(v) => Ok(ValueKind::Bool(*v)),
             Literal::None => Ok(ValueKind::None),
@@ -279,7 +279,7 @@ impl ASTNode for Stmt {
                 otherwise,
             } => {
                 let value_kind = test.kind.eval(ctx.clone())?;
-                match (value_kind) {
+                match value_kind {
                     ValueKind::Bool(true) => {
                         for stmt in body.clone() {
                             stmt.kind.eval(ctx.clone())?;
@@ -287,15 +287,16 @@ impl ASTNode for Stmt {
                         }
                     }
                     ValueKind::Bool(false) | ValueKind::None => {
-                        for stmt in body.clone() {
-                            stmt.kind.eval(ctx.clone())?;
-                            ctx.borrow_mut().consume_one()?;
+                        if let Some(otherwise) = otherwise {
+                            for stmt in otherwise.clone() {
+                                stmt.kind.eval(ctx.clone())?;
+                                ctx.borrow_mut().consume_one()?;
+                            }
                         }
                     }
                     _ => return Err(SandboxExecutionError::InvalidTypeError),
                 }
             }
-            _ => todo!(),
         };
         Ok(ValueKind::None)
     }
