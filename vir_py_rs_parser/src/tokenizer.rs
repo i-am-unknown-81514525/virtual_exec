@@ -1,20 +1,112 @@
+use crate::token;
 use syn::parse::{Parse, ParseStream, Result};
 use syn::{braced, parenthesized, Ident, Lit, Token};
 use vir_py_rs_type::ast::core as final_ast;
-use vir_py_rs_type::ast::core::BinaryOperator;
 
+#[derive(Clone)]
+pub struct Block {
+    pub stmts: Vec<Stmt>,
+}
+
+#[derive(Clone)]
+pub enum Stmt {
+    Expr(Expr),
+    Assign {
+        target: Expr,
+        value: Expr,
+    },
+    If {
+        test: Expr,
+        body: Block,
+        otherwise: Option<Block>,
+    },
+}
+
+#[derive(Clone)]
 pub enum Expr {
     Atom(Atom),
     Binary(Box<Expr>, final_ast::BinaryOperator, Box<Expr>),
     Unary(final_ast::UnaryOperator, Box<Expr>),
 }
 
+#[derive(Clone)]
 pub enum Atom {
     Literal(final_ast::Literal),
     Variable(String),
     Paren(Box<Expr>),
 }
 
+// --- Parser Implementation ---
+
+impl Parse for Block {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let content;
+        braced!(content in input);
+        let mut stmts = Vec::new();
+        while !content.is_empty() {
+            stmts.push(content.parse()?);
+        }
+        Ok(Block { stmts })
+    }
+}
+
+impl Parse for Stmt {
+    fn parse(input: ParseStream) -> Result<Self> {
+        if input.peek(Token![if]) {
+            return parse_if_statement(input);
+        }
+
+        let fork = input.fork();
+        let expr = fork.parse::<Expr>()?;
+
+        if fork.peek(Token![=])
+            || fork.peek(token::PlusAssign) || fork.peek(token::MinusAssign)
+            || fork.peek(token::StarAssign) || fork.peek(token::SlashAssign)
+            || fork.peek(token::PercentAssign) || fork.peek(token::BitAndAssign)
+            || fork.peek(token::BitOrAssign) || fork.peek(token::BitXorAssign)
+            || fork.peek(token::LeftShiftAssign) || fork.peek(token::RightShiftAssign)
+        {
+            let target = input.parse::<Expr>()?;
+            let op: AssignOp = input.parse()?;
+            let value = input.parse::<Expr>()?;
+            input.parse::<Token![;]>()?;
+
+            let final_value = match op {
+                AssignOp::Assign => value,
+                _ => {
+                    let binary_op = map_assign_op_to_binary_op(op).unwrap();
+                    Expr::Binary(Box::new(target.clone()), binary_op, Box::new(value))
+                }
+            };
+            
+            Ok(Stmt::Assign { target, value: final_value })
+
+        } else {
+            let expr = input.parse::<Expr>()?;
+            input.parse::<Token![;]>()?;
+            Ok(Stmt::Expr(expr))
+        }
+    }
+}
+
+fn parse_if_statement(input: ParseStream) -> Result<Stmt> {
+    input.parse::<Token![if]>()?;
+    let test = input.parse::<Expr>()?;
+    let body = input.parse::<Block>()?;
+    let mut otherwise = None;
+
+    if input.peek(Token![else]) {
+        input.parse::<Token![else]>()?;
+        if input.peek(Token![if]) {
+            let nested_if = parse_if_statement(input)?;
+            otherwise = Some(Block { stmts: vec![nested_if] });
+        } else {
+            otherwise = Some(input.parse::<Block>()?);
+        }
+    }
+
+    Ok(Stmt::If { test, body, otherwise })
+}
 
 impl Parse for Expr {
     fn parse(input: ParseStream) -> Result<Self> {
@@ -22,9 +114,7 @@ impl Parse for Expr {
     }
 }
 
-// Pratt
 fn parse_expr_with_precedence(input: ParseStream, min_bp: u8) -> Result<Expr> {
-    // First, parse the left-hand side, which can be a prefix operator or an atom.
     let mut lhs = if input.peek(Token![!]) {
         input.parse::<Token![!]>()?;
         let rhs = parse_expr_with_precedence(input, prefix_binding_power(&final_ast::UnaryOperator::Not))?;
@@ -42,14 +132,10 @@ fn parse_expr_with_precedence(input: ParseStream, min_bp: u8) -> Result<Expr> {
             Some(op_data) if op_data.1 >= min_bp => op_data,
             _ => break,
         };
-
-        // Consume the operator token.
         consume_op(input, &op)?;
-
         let rhs = parse_expr_with_precedence(input, r_bp)?;
         lhs = Expr::Binary(Box::new(lhs), op, Box::new(rhs));
     }
-
     Ok(lhs)
 }
 
@@ -78,7 +164,44 @@ impl Parse for Atom {
     }
 }
 
-// --- Operator Precedence and Binding Power ---
+
+#[derive(Clone, Copy)]
+pub enum AssignOp {
+    Assign, Add, Sub, Mul, Div, Mod, BitAnd, BitOr, BitXor, Shl, Shr,
+}
+
+impl Parse for AssignOp {
+    fn parse(input: ParseStream) -> Result<Self> {
+        if input.peek(Token![=]) { input.parse::<Token![=]>()?; Ok(AssignOp::Assign) }
+        else if input.peek(token::PlusAssign) { input.parse::<token::PlusAssign>()?; Ok(AssignOp::Add) }
+        else if input.peek(token::MinusAssign) { input.parse::<token::MinusAssign>()?; Ok(AssignOp::Sub) }
+        else if input.peek(token::StarAssign) { input.parse::<token::StarAssign>()?; Ok(AssignOp::Mul) }
+        else if input.peek(token::SlashAssign) { input.parse::<token::SlashAssign>()?; Ok(AssignOp::Div) }
+        else if input.peek(token::PercentAssign) { input.parse::<token::PercentAssign>()?; Ok(AssignOp::Mod) }
+        else if input.peek(token::BitAndAssign) { input.parse::<token::BitAndAssign>()?; Ok(AssignOp::BitAnd) }
+        else if input.peek(token::BitOrAssign) { input.parse::<token::BitOrAssign>()?; Ok(AssignOp::BitOr) }
+        else if input.peek(token::BitXorAssign) { input.parse::<token::BitXorAssign>()?; Ok(AssignOp::BitXor) }
+        else if input.peek(token::LeftShiftAssign) { input.parse::<token::LeftShiftAssign>()?; Ok(AssignOp::Shl) }
+        else if input.peek(token::RightShiftAssign) { input.parse::<token::RightShiftAssign>()?; Ok(AssignOp::Shr) }
+        else { Err(input.error("unsupported assignment operator")) }
+    }
+}
+
+fn map_assign_op_to_binary_op(op: AssignOp) -> Option<final_ast::BinaryOperator> {
+    match op {
+        AssignOp::Assign => None,
+        AssignOp::Add => Some(final_ast::BinaryOperator::Add),
+        AssignOp::Sub => Some(final_ast::BinaryOperator::Subtract),
+        AssignOp::Mul => Some(final_ast::BinaryOperator::Multiply),
+        AssignOp::Div => Some(final_ast::BinaryOperator::Divide),
+        AssignOp::Mod => Some(final_ast::BinaryOperator::Modulo),
+        AssignOp::BitAnd => Some(final_ast::BinaryOperator::BitwiseAnd),
+        AssignOp::BitOr => Some(final_ast::BinaryOperator::BitwiseOr),
+        AssignOp::BitXor => Some(final_ast::BinaryOperator::Xor),
+        AssignOp::Shl => Some(final_ast::BinaryOperator::LeftShift),
+        AssignOp::Shr => Some(final_ast::BinaryOperator::RightShift),
+    }
+}
 
 fn prefix_binding_power(op: &final_ast::UnaryOperator) -> u8 {
     match op {
@@ -88,7 +211,6 @@ fn prefix_binding_power(op: &final_ast::UnaryOperator) -> u8 {
 }
 
 fn infix_binding_power(op: &final_ast::BinaryOperator) -> (u8, u8) {
-    // Right-associative would be (r_bp, r_bp - 1), e.g. (12, 11)
     match op {
         final_ast::BinaryOperator::Or => (1, 2),
         final_ast::BinaryOperator::And => (3, 4),
@@ -100,6 +222,7 @@ fn infix_binding_power(op: &final_ast::BinaryOperator) -> (u8, u8) {
         final_ast::BinaryOperator::LeftShift | final_ast::BinaryOperator::RightShift => (15, 16),
         final_ast::BinaryOperator::Add | final_ast::BinaryOperator::Subtract => (17, 18),
         final_ast::BinaryOperator::Multiply | final_ast::BinaryOperator::Divide | final_ast::BinaryOperator::Modulo => (19, 20),
+        _ => (0, 0),
     }
 }
 
@@ -145,45 +268,4 @@ fn consume_op(input: ParseStream, op: &final_ast::BinaryOperator) -> Result<()> 
         final_ast::BinaryOperator::LeftShift => input.parse::<Token![<<]>().map(|_| ()),
         final_ast::BinaryOperator::RightShift => input.parse::<Token![>>]>().map(|_| ())
     }
-}
-
-
-pub enum AssinOp {
-    Set, // =
-    AddSet, // + =
-    SubSet, // -=
-    MulSet, // *=
-    DivSet, // /=
-    ModSet, // %=
-    BitAndSet, // &=
-    BitOrSet, // |=
-    BitXorSet, // ^=
-    LeftShiftSet, // <<=
-    RightShiftSet, // >>=
-}
-
-pub enum Stmt {
-    Expr(Expr),
-    Assign(Expr, AssinOp, Expr),
-    If {
-        test: Expr,
-        body: Vec<Stmt>,
-        otherwise: Option<Vec<Stmt>>,
-    }
-}
-
-fn map_assign_op_to_binary_op(op: AssinOp) -> Option<final_ast::BinaryOperator> { // None -> Plain eq
-    Some(match op {
-        AssinOp::Set => return None,
-        AssinOp::AddSet => final_ast::BinaryOperator::Add,
-        AssinOp::SubSet => final_ast::BinaryOperator::Subtract,
-        AssinOp::MulSet => final_ast::BinaryOperator::Multiply,
-        AssinOp::DivSet => final_ast::BinaryOperator::Divide,
-        AssinOp::ModSet => final_ast::BinaryOperator::Modulo,
-        AssinOp::BitAndSet => final_ast::BinaryOperator::BitwiseAnd,
-        AssinOp::BitOrSet => final_ast::BinaryOperator::BitwiseOr,
-        AssinOp::BitXorSet => final_ast::BinaryOperator::Xor,
-        AssinOp::LeftShiftSet => final_ast::BinaryOperator::LeftShift,
-        AssinOp::RightShiftSet => final_ast::BinaryOperator::RightShift
-    })
 }

@@ -1,17 +1,46 @@
 use crate::tokenizer;
 use vir_py_rs_type::ast::core as final_ast;
-use crate::error::ParseError;
 
-// --- Conversion Layer (Intermediate AST -> Final AST) ---
+
+#[derive(Debug)]
+pub enum ConvertError {
+    ParseError(syn::Error),
+    InvalidAssignmentTarget,
+}
+
+fn convert_stmt(stmt: tokenizer::Stmt) -> Result<final_ast::Node<final_ast::Stmt>, ConvertError> {
+    let kind = match stmt {
+        tokenizer::Stmt::Expr(expr) => final_ast::Stmt::Expression(convert_expr(expr)),
+        tokenizer::Stmt::Assign { target, value } => {
+            final_ast::Stmt::Assign {
+                target: convert_expr(target),
+                value: convert_expr(value),
+            }
+        }
+        tokenizer::Stmt::If { test, body, otherwise } => {
+            let final_test = convert_expr(test);
+            let final_body = body.stmts.into_iter().map(convert_stmt).collect::<Result<_, _>>()?;
+            let final_otherwise = otherwise
+                .map(|b| b.stmts.into_iter().map(convert_stmt).collect())
+                .transpose()?;
+            
+            final_ast::Stmt::If {
+                test: final_test,
+                body: final_body,
+                otherwise: final_otherwise,
+            }
+        }
+    };
+    Ok(final_ast::Node { kind, span: None })
+}
+
 
 fn convert_expr(expr: tokenizer::Expr) -> final_ast::Node<final_ast::Expr> {
     let kind = match expr {
         tokenizer::Expr::Atom(atom) => match atom {
             tokenizer::Atom::Literal(l) => final_ast::Expr::Literal(l),
             tokenizer::Atom::Variable(v) => final_ast::Expr::Variable(v),
-            tokenizer::Atom::Paren(expr_in_paren) => {
-                return convert_expr(*expr_in_paren);
-            }
+            tokenizer::Atom::Paren(expr_in_paren) => return convert_expr(*expr_in_paren),
         },
         tokenizer::Expr::Binary(left, op, right) => final_ast::Expr::BinaryOp {
             left: Box::new(convert_expr(*left)),
@@ -26,8 +55,8 @@ fn convert_expr(expr: tokenizer::Expr) -> final_ast::Node<final_ast::Expr> {
     final_ast::Node { kind, span: None }
 }
 
-
-pub fn parse(source: &str) -> std::result::Result<final_ast::Node<final_ast::Expr>, ParseError> {
-    let intermediate_expr: tokenizer::Expr = syn::parse_str(source).map_err(ParseError::SynParseError)?;
-    Ok(convert_expr(intermediate_expr))
+pub fn parse(source: &str) -> std::result::Result<final_ast::Module, ConvertError> {
+    let block: tokenizer::Block = syn::parse_str(source).map_err(ConvertError::ParseError)?;
+    let body = block.stmts.into_iter().map(convert_stmt).collect::<Result<_, _>>()?;
+    Ok(final_ast::Module { body, span: None })
 }
