@@ -1,11 +1,42 @@
-use crate::base::Value;
+use crate::base::{Value, ValueKind};
 use crate::builtin::Mapping;
 use crate::error::SandboxExecutionError;
 use bumpalo::Bump;
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::rc::Rc;
 
 pub type Result<T> = core::result::Result<T, SandboxExecutionError>;
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum RsValue {
+    Int(i64),
+    Float(f64),
+    Object(HashMap<String, RsValue>),
+    Bool(bool),
+    String(String),
+    None,
+}
+
+fn value_kind_to_rs_value(kind: &ValueKind) -> RsValue {
+    match kind {
+        ValueKind::Int(i) => RsValue::Int(i.value),
+        ValueKind::Float(f) => RsValue::Float(f.value),
+        ValueKind::Bool(b) => RsValue::Bool(*b),
+        ValueKind::String(s) => RsValue::String(s.clone()),
+        ValueKind::None => RsValue::None,
+        ValueKind::Object(o) => {
+            let mut map = HashMap::new();
+            for (key, value_rc) in o.mapping.borrow().mapping.iter() {
+                let value_ref = value_rc.borrow();
+                map.insert(key.clone(), value_kind_to_rs_value(&value_ref.kind));
+            }
+            RsValue::Object(map)
+        }
+        // Errors are not representable as a PyValue and are skipped.
+        ValueKind::ErrorWrapped(_) => RsValue::None,
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct ExecutionContext<'ctx> {
@@ -35,6 +66,18 @@ impl<'ctx> ExecutionContext<'ctx> {
         }
     }
 
+    pub fn to_hashmap(&self) -> HashMap<String, RsValue> {
+        let mut dict = HashMap::new();
+        for scope_rc in self.mapping.iter().rev() {
+            let scope = scope_rc.borrow();
+            for (key, value_rc) in scope.mapping.iter() {
+                let value_ref = value_rc.borrow();
+                dict.insert(key.clone(), value_kind_to_rs_value(&value_ref.kind));
+            }
+        }
+        dict
+    }
+
     pub fn consume_one(&mut self) -> Result<()> {
         self.consume(1)
     }
@@ -52,6 +95,7 @@ impl<'ctx> ExecutionContext<'ctx> {
         for mapping in self.mapping.clone() {
             if mapping.borrow().mapping.contains_key(name) {
                 r = Some(mapping.borrow().mapping.get(name).unwrap().clone());
+                break; // Found in the most local scope, stop searching
             }
         }
         match r {
