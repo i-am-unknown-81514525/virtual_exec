@@ -4,6 +4,7 @@ use crate::exec_ctx::{ExecutionContext, Result};
 use crate::op::*;
 use std::cell::{Ref, RefCell};
 use std::rc::Rc;
+use crate::error::SandboxExecutionError;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Span {
@@ -219,7 +220,7 @@ pub enum UaryOperator {
 pub enum Stmt {
     Expression(Node<Expr>),
     Assign {
-        target: Node<Expr>,
+        target: String,
         value: Node<Expr>,
     },
     If {
@@ -227,37 +228,51 @@ pub enum Stmt {
         body: Vec<Node<Stmt>>,
         otherwise: Option<Vec<Node<Stmt>>>,
     },
-    FunctionDef {
-        name: String,
-        args: Vec<String>,
-        body: Vec<Node<Stmt>>,
-    },
-    ClassDef {
-        name: String,
-        bases: Vec<Node<Expr>>,
-        body: Vec<Node<Stmt>>,
-    },
-    ForLoop {
-        target: Node<Expr>, // Added target
-        iter_expr: Node<Expr>,
-        body: Vec<Node<Stmt>>,
-        not_break: Vec<Node<Stmt>>,
-    },
-    WhileLoop {
-        test: Node<Expr>,
-        body: Vec<Node<Stmt>>,
-        otherwise: Option<Vec<Node<Stmt>>>, // Added otherwise
-    },
-    Return(Option<Node<Expr>>),
-    Break,
-    Continue,
+    // FunctionDef {
+    //     name: String,
+    //     args: Vec<String>,
+    //     body: Vec<Node<Stmt>>,
+    // },
+    // ClassDef {
+    //     name: String,
+    //     bases: Vec<Node<Expr>>,
+    //     body: Vec<Node<Stmt>>,
+    // },
+    // ForLoop {
+    //     target: Node<Expr>, // Added target
+    //     iter_expr: Node<Expr>,
+    //     body: Vec<Node<Stmt>>,
+    //     not_break: Vec<Node<Stmt>>,
+    // },
+    // WhileLoop {
+    //     test: Node<Expr>,
+    //     body: Vec<Node<Stmt>>,
+    //     otherwise: Option<Vec<Node<Stmt>>>, // Added otherwise
+    // },
+    // Return(Option<Node<Expr>>),
+    // Break,
+    // Continue,
 }
 
 impl ASTNode for Stmt {
     type Output<'ctx> = ();
 
     fn eval<'ctx>(&self, ctx: Rc<RefCell<ExecutionContext<'ctx>>>) -> Result<Self::Output<'ctx>> {
-        todo!()
+        match self {
+            Stmt::Expression(expr) => {expr.kind.eval(ctx.clone())?;}
+            Stmt::Assign { target, value } => {
+                let value_kind = value.kind.eval(ctx.clone())?;
+                with_arena(
+                    &ctx,
+                    |arena| {
+                        ctx.borrow_mut().get(target)?.replace(ValueContainer::new(value_kind, arena));
+                        Ok::<(), SandboxExecutionError>(())
+                    }
+                )?;
+            }
+            _ => todo!()
+        };
+        Ok(())
     }
 
     fn get_callsite(&self) -> Option<Span> {
