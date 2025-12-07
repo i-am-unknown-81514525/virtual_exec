@@ -17,6 +17,7 @@ pub enum SandboxExecutionError {
     GenericPanicRewindError,
     UndefinedOperatorMethodError,
     InvalidTypeError,
+    InvalidSyntaxError,
 }
 
 pub type Result<T> = ::core::result::Result<T, SandboxExecutionError>;

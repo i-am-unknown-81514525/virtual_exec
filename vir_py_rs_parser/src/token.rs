@@ -1,16 +1,24 @@
-use syn::{custom_punctuation, custom_keyword};
+use syn::{custom_keyword, custom_punctuation};
 
-custom_keyword!(def);
-custom_keyword!(pass);
+custom_keyword!(True);
+custom_keyword!(False);
 custom_keyword!(None);
+custom_keyword!(elif);
+custom_keyword!(def);
+custom_keyword!(class);
+custom_keyword!(pass);
 custom_keyword!(is);
 custom_keyword!(del);
-custom_keyword!(elif);
 
-// False(false)	await(No async, properly ever)	else	import(not applicable)	pass
-// None	break	except(* No exception flow yet)	in	raise(* No exception flow yet)
-// True(true)	class(No OOP yet)	finally(* No exception flow yet)	is(Would it ever be used????)	return
-// and(&&)	continue	for	lambda(No function yet)	try(* No exception flow yet)
-// as	def	from	nonlocal(oops)	while
-// assert(hmm)	del	global	not(!)	with(N/A)
-// async	elif	if	or(||)	yield
+custom_punctuation!(StarStar, **);
+custom_punctuation!(PlusAssign, +=);
+custom_punctuation!(MinusAssign, -=);
+custom_punctuation!(StarAssign, *=);
+custom_punctuation!(SlashAssign, /=);
+custom_punctuation!(PercentAssign, %=);
+custom_punctuation!(Eq, ==);
+custom_punctuation!(NotEq, !=);
+custom_punctuation!(Lte, <=);
+custom_punctuation!(Gte, >=);
+custom_punctuation!(LeftShift, <<);
+custom_punctuation!(RightShift, >>);

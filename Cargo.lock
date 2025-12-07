@@ -114,6 +114,7 @@ dependencies = [
 name = "vir_py_rs_parser"
 version = "0.1.0"
 dependencies = [
+ "proc-macro2",
  "syn",
  "vir_py_rs_type",
 ]

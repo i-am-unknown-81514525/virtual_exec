@@ -222,7 +222,7 @@ pub enum UnaryOperator {
 pub enum Stmt {
     Expression(Node<Expr>),
     Assign {
-        target: String, // temp since no a[b] or a.b right now
+        target: Node<Expr>, // temp since no a[b] or a.b right now
         value: Node<Expr>,
     },
     If {
@@ -266,12 +266,19 @@ impl ASTNode for Stmt {
             }
             Stmt::Assign { target, value } => {
                 let value_kind = value.kind.eval(ctx.clone())?;
-                with_arena(&ctx, |arena| {
-                    ctx.borrow_mut()
-                        .get(target)?
-                        .replace(ValueContainer::new(value_kind, arena));
-                    Ok::<(), SandboxExecutionError>(())
-                })?;
+                match (&target.kind) {
+                    Expr::Variable(name) => {
+                        with_arena(&ctx, |arena| {
+                            ctx.borrow_mut()
+                                .get(&name)?
+                                .replace(ValueContainer::new(value_kind, arena));
+                            Ok::<(), SandboxExecutionError>(())
+                        })?;
+                    }
+                    _ => {
+                        Err(SandboxExecutionError::InvalidSyntaxError)?
+                    }
+                }
             }
             Stmt::If {
                 test,

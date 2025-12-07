@@ -6,6 +6,7 @@ edition = "2024"
 [dependencies]
 syn = { version = "2.0.106", features = ["full"] }
 vir_py_rs_type = { path = "../vir_py_rs_type" }
+proc-macro2 = "1.0.103"
 
 [dev-dependencies]
 syn = { version = "2.0.106", features = ["full", "extra-traits"] }
