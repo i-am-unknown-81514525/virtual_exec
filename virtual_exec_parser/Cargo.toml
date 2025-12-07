@@ -2,6 +2,12 @@
 name = "virtual_exec_parser"
 version = "0.1.0"
 edition = "2024"
+repository = "https://github.com/i-am-unknown-81514525/virtual_exec"
+authors = ["i-am-unknown-81514525" ]
+license-file = "LICENSE"
+description = "Parser definition sub-crate for virtual_exec - A sandbox execution environment which allowed limited execution of expression safely (WIP)"
+readme = "README.md"
+
 
 [dependencies]
 syn = { version = "2.0.106", features = ["full"] }
