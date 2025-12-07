@@ -130,6 +130,22 @@ macro_rules! __unary_op_create {
                 }
                 None
             }
+            pub fn [<err_op_ $name>]<'ctx>(rhs: $crate::base::Value<'ctx>, arena: &'ctx ::bumpalo::Bump) -> ::core::result::Result<$crate::base::Value<'ctx>, $crate::error::SandboxExecutionError> {
+                for implementation in ::inventory::iter::<[<Op $alt_name Impl>]> {
+                    if let ::core::option::Option::Some(result) = (implementation.function)(rhs, arena) {
+                       match &result.kind {
+                           $crate::base::ValueKind::ErrorWrapped(err) => {
+                               return Err(err.clone());
+                           }
+                           _ => {
+                               return Ok(result);
+                           }
+                       }
+                    }
+                }
+                return Err($crate::error::SandboxExecutionError::UndefinedOperatorMethodError)
+            }
+
             #[macro_export]
             macro_rules! [<register_op_ $name>] {
                 ($d rhs_type:ty, $d output_wrapper:path) => {
