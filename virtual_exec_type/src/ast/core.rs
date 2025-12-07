@@ -25,14 +25,11 @@ fn with_arena<'ctx, F, R>(ctx: &Rc<RefCell<ExecutionContext<'ctx>>>, f: F) -> R
 where
     F: FnOnce(&'ctx bumpalo::Bump) -> R,
 {
-    let arena_rc = {
-        let ctx_borrow = ctx.borrow();
-        ctx_borrow.arena.clone()
-    };
+    let arena_rc = { ctx.borrow().arena.clone() };
     let arena_borrow: Ref<bumpalo::Bump> = arena_rc.borrow();
     let arena_ref: &bumpalo::Bump = &arena_borrow;
     let arena_ref_ctx: &'ctx bumpalo::Bump = unsafe { std::mem::transmute(arena_ref) };
-    
+
     f(arena_ref_ctx)
 }
 
@@ -286,9 +283,9 @@ impl ASTNode for Stmt {
                 match &target.kind {
                     Expr::Variable(name) => {
                         with_arena(&ctx, |arena| {
+                            let value_container = ValueContainer::new(value_kind, arena);
                             ctx.borrow_mut()
-                                .get_ignore_missing(&name)?
-                                .replace(ValueContainer::new(value_kind, arena));
+                                .get_ignore_missing(&name, value_container)?;
                             Ok::<(), SandboxExecutionError>(())
                         })?;
                     }

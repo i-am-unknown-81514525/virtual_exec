@@ -106,25 +106,30 @@ impl<'ctx> ExecutionContext<'ctx> {
         }
     }
 
-    pub fn get_ignore_missing(&self, name: &str) -> Result<Rc<RefCell<Value<'ctx>>>> {
-        let mut r: Option<Rc<RefCell<Value<'ctx>>>> = None;
-        for mapping in self.mapping.clone() {
+    pub fn get_ignore_missing(
+        &mut self,
+        name: &str,
+        value: Value<'ctx>,
+    ) -> Result<Rc<RefCell<Value<'ctx>>>> {
+        for mapping in &self.mapping {
             if mapping.borrow().mapping.contains_key(name) {
-                r = Some(mapping.borrow().mapping.get(name).unwrap().clone());
-                break; // Found in the most local scope, stop searching
+                let r = mapping.borrow().mapping.get(name).unwrap().clone();
+                r.replace(value);
+                return Ok(r);
             }
         }
-        if (self.mapping.len() == 0) {
+
+        if self.mapping.is_empty() {
             return Err(SandboxExecutionError::ReferenceNotExistError(
                 name.to_string(),
             ));
         }
-        match r {
-            Some(v) => Ok(v),
-            None => {
-                let r = Rc::new(RefCell::new(ValueContainer::new(ValueKind::None, &self.arena.borrow_mut())));
-                self.get(name)
-            }
-        }
+
+        let new_value = Rc::new(RefCell::new(value));
+        self.mapping[0]
+            .borrow_mut()
+            .mapping
+            .insert(name.to_string(), new_value.clone());
+        Ok(new_value)
     }
 }
