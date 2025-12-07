@@ -93,6 +93,7 @@ name = "virtual_exec"
 version = "0.1.0"
 dependencies = [
  "bumpalo",
+ "virtual_exec_macro",
  "virtual_exec_parser",
  "virtual_exec_type",
 ]

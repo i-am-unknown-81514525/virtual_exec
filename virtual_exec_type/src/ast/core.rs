@@ -287,7 +287,7 @@ impl ASTNode for Stmt {
                     Expr::Variable(name) => {
                         with_arena(&ctx, |arena| {
                             ctx.borrow_mut()
-                                .get(&name)?
+                                .get_ignore_missing(&name)?
                                 .replace(ValueContainer::new(value_kind, arena));
                             Ok::<(), SandboxExecutionError>(())
                         })?;

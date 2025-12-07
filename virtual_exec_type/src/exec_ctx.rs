@@ -1,4 +1,4 @@
-use crate::base::{Value, ValueKind};
+use crate::base::{Value, ValueContainer, ValueKind};
 use crate::builtin::Mapping;
 use crate::error::SandboxExecutionError;
 use bumpalo::Bump;
@@ -103,6 +103,28 @@ impl<'ctx> ExecutionContext<'ctx> {
             None => Err(SandboxExecutionError::ReferenceNotExistError(
                 name.to_string(),
             )),
+        }
+    }
+
+    pub fn get_ignore_missing(&self, name: &str) -> Result<Rc<RefCell<Value<'ctx>>>> {
+        let mut r: Option<Rc<RefCell<Value<'ctx>>>> = None;
+        for mapping in self.mapping.clone() {
+            if mapping.borrow().mapping.contains_key(name) {
+                r = Some(mapping.borrow().mapping.get(name).unwrap().clone());
+                break; // Found in the most local scope, stop searching
+            }
+        }
+        if (self.mapping.len() == 0) {
+            return Err(SandboxExecutionError::ReferenceNotExistError(
+                name.to_string(),
+            ));
+        }
+        match r {
+            Some(v) => Ok(v),
+            None => {
+                let r = Rc::new(RefCell::new(ValueContainer::new(ValueKind::None, &self.arena.borrow_mut())));
+                self.get(name)
+            }
         }
     }
 }

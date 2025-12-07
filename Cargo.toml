@@ -13,6 +13,10 @@ virtual_exec_type = { path = "virtual_exec_type"}
 virtual_exec_parser = { path = "virtual_exec_parser"}
 bumpalo = "3.19.0"
 
+[dev-dependencies]
+virtual_exec_macro = { path = "virtual_exec_macro"}
+virtual_exec_type = { path = "virtual_exec_type" }
+
 [workspace]
 members = [
     "virtual_exec_type",
