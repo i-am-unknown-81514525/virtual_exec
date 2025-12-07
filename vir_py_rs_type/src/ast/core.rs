@@ -70,7 +70,7 @@ pub enum Expr {
         right: Box<Node<Expr>>,
     },
     UnaryOp {
-        op: UaryOperator,
+        op: UnaryOperator,
         operand: Box<Node<Expr>>,
     },
     Wrapped(Box<Node<Expr>>),
@@ -106,9 +106,9 @@ impl ASTNode for Expr {
                 with_arena(&ctx, |arena| {
                     let rhs = ValueContainer::new(rhs_kind, arena);
                     match op {
-                        UaryOperator::Negative => Ok(err_op_neg(rhs, arena)?.kind.clone()),
-                        UaryOperator::Positive => Ok(err_op_pos(rhs, arena)?.kind.clone()),
-                        UaryOperator::Not => Ok(err_op_not(rhs, arena)?.kind.clone()),
+                        UnaryOperator::Negative => Ok(err_op_neg(rhs, arena)?.kind.clone()),
+                        UnaryOperator::Positive => Ok(err_op_pos(rhs, arena)?.kind.clone()),
+                        UnaryOperator::Not => Ok(err_op_not(rhs, arena)?.kind.clone()),
                     }
                 })
             }
@@ -212,7 +212,7 @@ pub enum BinaryOperator {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub enum UaryOperator {
+pub enum UnaryOperator {
     Positive,
     Negative,
     Not,
