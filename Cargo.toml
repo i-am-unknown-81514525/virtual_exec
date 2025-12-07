@@ -9,6 +9,5 @@ edition = "2024"
 members = [
     "vir_py_rs_type",
     "vir_py_rs_macro",
-    "vir_py_rs_parser",
-    "vir_py_rs_exec"
+    "vir_py_rs_parser"
 ]

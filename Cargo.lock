@@ -93,14 +93,6 @@ name = "vir_py-rs"
 version = "0.1.0"
 
 [[package]]
-name = "vir_py_rs_exec"
-version = "0.1.0"
-dependencies = [
- "vir_py_rs_parser",
- "vir_py_rs_type",
-]
-
-[[package]]
 name = "vir_py_rs_macro"
 version = "0.1.0"
 dependencies = [
