@@ -1,10 +1,10 @@
 use crate::base::{ValueContainer, ValueKind};
 use crate::builtin::{VirPyFloat, VirPyInt};
+use crate::error::SandboxExecutionError;
 use crate::exec_ctx::{ExecutionContext, Result};
 use crate::op::*;
 use std::cell::{Ref, RefCell};
 use std::rc::Rc;
-use crate::error::SandboxExecutionError;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Span {
@@ -15,7 +15,7 @@ pub struct Span {
 
 pub trait ASTNode {
     type Output<'ctx>; // = ValueKind<'ctx>; // Oh cool that this is a unstable feature?
-    fn eval<'ctx>(&self, ctx:Rc<RefCell<ExecutionContext<'ctx>>>) -> Result<Self::Output<'ctx>>;
+    fn eval<'ctx>(&self, ctx: Rc<RefCell<ExecutionContext<'ctx>>>) -> Result<Self::Output<'ctx>>;
 
     fn get_callsite(&self) -> Option<Span>;
 }
@@ -96,7 +96,7 @@ pub enum Expr {
 impl ASTNode for Expr {
     type Output<'ctx> = ValueKind<'ctx>;
 
-    fn eval<'ctx>(&self, ctx:Rc<RefCell<ExecutionContext<'ctx>>>) -> Result<Self::Output<'ctx>> {
+    fn eval<'ctx>(&self, ctx: Rc<RefCell<ExecutionContext<'ctx>>>) -> Result<Self::Output<'ctx>> {
         ctx.borrow_mut().consume_one()?;
         match self {
             Expr::Literal(l) => l.eval(ctx),
@@ -111,8 +111,8 @@ impl ASTNode for Expr {
                         UaryOperator::Not => Ok(err_op_not(rhs, arena)?.kind.clone()),
                     }
                 })
-            },
-            Expr::BinaryOp { left, op, right} => {
+            }
+            Expr::BinaryOp { left, op, right } => {
                 let lhs_kind = left.kind.eval(ctx.clone())?;
                 // Special Case:
                 match (op, &lhs_kind) {
@@ -122,8 +122,8 @@ impl ASTNode for Expr {
                     (BinaryOperator::Or, ValueKind::Bool(true)) => {
                         return Ok(ValueKind::Bool(true));
                     }
-                    (BinaryOperator::Or, ValueKind::None | ValueKind::Bool(false)) |
-                    (BinaryOperator::And, ValueKind::Bool(true)) => {
+                    (BinaryOperator::Or, ValueKind::None | ValueKind::Bool(false))
+                    | (BinaryOperator::And, ValueKind::Bool(true)) => {
                         return Ok(right.kind.eval(ctx.clone())?);
                     }
                     _ => {}
@@ -141,7 +141,9 @@ impl ASTNode for Expr {
                         BinaryOperator::Or => Ok(err_op_or(lhs, rhs, arena)?.kind.clone()),
                         BinaryOperator::Xor => Ok(err_op_bxor(lhs, rhs, arena)?.kind.clone()),
                         BinaryOperator::Modulo => Ok(err_op_moduls(lhs, rhs, arena)?.kind.clone()),
-                        BinaryOperator::BitwiseAnd => Ok(err_op_band(lhs, rhs, arena)?.kind.clone()),
+                        BinaryOperator::BitwiseAnd => {
+                            Ok(err_op_band(lhs, rhs, arena)?.kind.clone())
+                        }
                         BinaryOperator::BitwiseOr => Ok(err_op_bor(lhs, rhs, arena)?.kind.clone()),
                         BinaryOperator::Eq => Ok(err_op_eq(lhs, rhs, arena)?.kind.clone()),
                         BinaryOperator::NotEq => Ok(err_op_ne(lhs, rhs, arena)?.kind.clone()),
@@ -151,9 +153,9 @@ impl ASTNode for Expr {
                         BinaryOperator::Gte => Ok(err_op_ge(lhs, rhs, arena)?.kind.clone()),
                     }
                 })
-            },
+            }
             Expr::Wrapped(expr) => expr.kind.eval(ctx.clone()),
-            _ => todo!()
+            _ => todo!(),
         }
     }
 
@@ -259,18 +261,23 @@ impl ASTNode for Stmt {
 
     fn eval<'ctx>(&self, ctx: Rc<RefCell<ExecutionContext<'ctx>>>) -> Result<Self::Output<'ctx>> {
         match self {
-            Stmt::Expression(expr) => {expr.kind.eval(ctx.clone())?;}
+            Stmt::Expression(expr) => {
+                expr.kind.eval(ctx.clone())?;
+            }
             Stmt::Assign { target, value } => {
                 let value_kind = value.kind.eval(ctx.clone())?;
-                with_arena(
-                    &ctx,
-                    |arena| {
-                        ctx.borrow_mut().get(target)?.replace(ValueContainer::new(value_kind, arena));
-                        Ok::<(), SandboxExecutionError>(())
-                    }
-                )?;
+                with_arena(&ctx, |arena| {
+                    ctx.borrow_mut()
+                        .get(target)?
+                        .replace(ValueContainer::new(value_kind, arena));
+                    Ok::<(), SandboxExecutionError>(())
+                })?;
             }
-            Stmt::If { test, body, otherwise } => {
+            Stmt::If {
+                test,
+                body,
+                otherwise,
+            } => {
                 let value_kind = test.kind.eval(ctx.clone())?;
                 match (value_kind) {
                     ValueKind::Bool(true) => {
@@ -278,17 +285,17 @@ impl ASTNode for Stmt {
                             stmt.kind.eval(ctx.clone())?;
                             ctx.borrow_mut().consume_one()?;
                         }
-                    },
+                    }
                     ValueKind::Bool(false) | ValueKind::None => {
                         for stmt in body.clone() {
                             stmt.kind.eval(ctx.clone())?;
                             ctx.borrow_mut().consume_one()?;
                         }
-                    },
-                    _ => return Err(SandboxExecutionError::InvalidTypeError)
+                    }
+                    _ => return Err(SandboxExecutionError::InvalidTypeError),
                 }
             }
-            _ => todo!()
+            _ => todo!(),
         };
         Ok(ValueKind::None)
     }
