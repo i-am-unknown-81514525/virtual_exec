@@ -39,3 +39,7 @@ WIP Feature list:
 - [virtual_exec_type](https://crates.io/crates/virtual_exec_type)
 - [virtual_exec_parser](https://crates.io/crates/virtual_exec_parser)
 - [virtual_exec_macro](https://crates.io/crates/virtual_exec_macro)
+
+### Video Demo
+
+https://github.com/user-attachments/assets/9a15c9ba-6932-466f-8d96-412dca2aa888
