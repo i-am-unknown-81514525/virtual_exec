@@ -87,12 +87,9 @@ impl Parse for Stmt {
             let value = input.parse::<Expr>()?;
             input.parse::<Token![;]>()?;
 
-            let final_value = match op {
-                AssignOp::Assign => value,
-                _ => {
-                    let binary_op = map_assign_op_to_binary_op(op).unwrap();
-                    Expr::Binary(Box::new(target.clone()), binary_op, Box::new(value))
-                }
+            let final_value = match map_assign_op_to_binary_op(op) {
+                None => value,
+                Some(binary_op) => Expr::Binary(Box::new(target.clone()), binary_op, Box::new(value))
             };
             
             Ok(Stmt::Assign { target, value: final_value })
@@ -248,21 +245,34 @@ fn infix_binding_power(op: &final_ast::BinaryOperator) -> (u8, u8) {
 }
 
 fn peek_infix_op(input: ParseStream) -> Option<(final_ast::BinaryOperator, u8, u8)> {
-    let op = if input.peek(Token![+]) { final_ast::BinaryOperator::Add }
-    else if input.peek(Token![-]) { final_ast::BinaryOperator::Subtract }
-    else if input.peek(Token![*]) { final_ast::BinaryOperator::Multiply }
-    else if input.peek(Token![/]) { final_ast::BinaryOperator::Divide }
-    else if input.peek(Token![%]) { final_ast::BinaryOperator::Modulo }
-    else if input.peek(Token![&&]) { final_ast::BinaryOperator::And }
+    let op = if input.peek(Token![&&]) { final_ast::BinaryOperator::And }
     else if input.peek(Token![||]) { final_ast::BinaryOperator::Or }
     else if input.peek(Token![==]) { final_ast::BinaryOperator::Eq }
     else if input.peek(Token![!=]) { final_ast::BinaryOperator::NotEq }
-    else if input.peek(Token![<]) { final_ast::BinaryOperator::Lt }
     else if input.peek(Token![<=]) { final_ast::BinaryOperator::Lte }
-    else if input.peek(Token![>]) { final_ast::BinaryOperator::Gt }
     else if input.peek(Token![>=]) { final_ast::BinaryOperator::Gte }
-    else if input.peek(Token![<<]) {final_ast::BinaryOperator::LeftShift }
+    else if input.peek(token::LeftShiftAssign) { return None }
+    else if input.peek(Token![<<]) { final_ast::BinaryOperator::LeftShift }
+    else if input.peek(token::RightShiftAssign) { return None }
     else if input.peek(Token![>>]) { final_ast::BinaryOperator::RightShift }
+    else if input.peek(Token![<]) { final_ast::BinaryOperator::Lt }
+    else if input.peek(Token![>]) { final_ast::BinaryOperator::Gt }
+    else if input.peek(token::PlusAssign) { return None }
+    else if input.peek(Token![+]) { final_ast::BinaryOperator::Add }
+    else if input.peek(token::MinusAssign) { return None }
+    else if input.peek(Token![-]) { final_ast::BinaryOperator::Subtract }
+    else if input.peek(token::StarAssign) { return None }
+    else if input.peek(Token![*]) { final_ast::BinaryOperator::Multiply }
+    else if input.peek(token::SlashAssign) { return None }
+    else if input.peek(Token![/]) { final_ast::BinaryOperator::Divide }
+    else if input.peek(token::PercentAssign) { return None }
+    else if input.peek(Token![%]) { final_ast::BinaryOperator::Modulo }
+    else if input.peek(token::BitAndAssign) { return None }
+    else if input.peek(Token![&]) { final_ast::BinaryOperator::BitwiseAnd }
+    else if input.peek(token::BitOrAssign) { return None }
+    else if input.peek(Token![|]) { final_ast::BinaryOperator::BitwiseOr }
+    else if input.peek(token::BitXorAssign) { return None }
+    else if input.peek(Token![^]) { final_ast::BinaryOperator::Xor }
     else { return None; };
     let (l_bp, r_bp) = infix_binding_power(&op);
     Some((op, l_bp, r_bp))
